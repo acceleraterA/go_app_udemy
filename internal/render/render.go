@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/acceleraterA/go_app_udemy/pkg/config"
-	"github.com/acceleraterA/go_app_udemy/pkg/models"
+	"github.com/acceleraterA/go_app_udemy/internal/config"
+	"github.com/acceleraterA/go_app_udemy/internal/models"
+	"github.com/justinas/nosurf"
 )
 
 var app *config.AppConfig
@@ -18,10 +19,11 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 
 }
-func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+func AddDefaultData(td *models.TemplateData, req *http.Request) *models.TemplateData {
+	td.CSRFToken = nosurf.Token(req)
 	return td
 }
-func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData) {
+func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData, r *http.Request) {
 
 	var tc map[string]*template.Template
 	if app.UseCache {
@@ -37,7 +39,7 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData)
 		log.Fatal("Could not get template from template cache")
 	}
 	buf := new(bytes.Buffer)
-	td = AddDefaultData(td)
+	td = AddDefaultData(td, r)
 	_ = parsedTemplate.Execute(buf, td)
 
 	//render the template

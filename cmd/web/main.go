@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/acceleraterA/go_app_udemy/pkg/config"
-	"github.com/acceleraterA/go_app_udemy/pkg/handlers"
-	"github.com/acceleraterA/go_app_udemy/pkg/render"
+	"github.com/acceleraterA/go_app_udemy/internal/config"
+	"github.com/acceleraterA/go_app_udemy/internal/handlers"
+	"github.com/acceleraterA/go_app_udemy/internal/render"
 	scs "github.com/alexedwards/scs/v2"
 )
 
