@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
 	"github.com/acceleraterA/go_app_udemy/internal/handlers"
+	"github.com/acceleraterA/go_app_udemy/internal/models"
 	"github.com/acceleraterA/go_app_udemy/internal/render"
 	scs "github.com/alexedwards/scs/v2"
 )
@@ -18,7 +20,8 @@ var app config.AppConfig
 var session *scs.SessionManager
 
 func main() {
-
+	// (register the reservation object to session) what am I going to put in the session
+	gob.Register(models.Reservation{})
 	//change this to true when in production
 	app.InProduction = false
 

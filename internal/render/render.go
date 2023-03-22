@@ -19,8 +19,12 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 
 }
-func AddDefaultData(td *models.TemplateData, req *http.Request) *models.TemplateData {
-	td.CSRFToken = nosurf.Token(req)
+func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
+	//flush error and warning will be automatically populated when we rendering the templates
+	td.Flash = app.Session.PopString(r.Context(), "flash")
+	td.Error = app.Session.PopString(r.Context(), "error")
+	td.Warning = app.Session.PopString(r.Context(), "warning")
+	td.CSRFToken = nosurf.Token(r)
 	return td
 }
 func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData, r *http.Request) {

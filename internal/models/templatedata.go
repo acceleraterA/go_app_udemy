@@ -1,5 +1,7 @@
 package models
 
+import "github.com/acceleraterA/go_app_udemy/internal/forms"
+
 type TemplateData struct {
 	StringMap map[string]string
 	IntMap    map[string]int
@@ -7,6 +9,7 @@ type TemplateData struct {
 	Data      map[string]interface{}
 	CSRFToken string
 	Flash     string
-	warning   string
+	Warning   string
 	Error     string
+	Form      *forms.Form
 }
