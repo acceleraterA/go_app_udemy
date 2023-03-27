@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/justinas/nosurf"
 )
 
+/*
 func WriteToConsole(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -14,7 +14,7 @@ func WriteToConsole(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
+*/
 // Nosurf adds CSRF protection to all POST requests
 func NoSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)

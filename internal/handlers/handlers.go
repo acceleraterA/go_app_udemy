@@ -3,11 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
 	"github.com/acceleraterA/go_app_udemy/internal/forms"
+	"github.com/acceleraterA/go_app_udemy/internal/helpers"
 	"github.com/acceleraterA/go_app_udemy/internal/models"
 	"github.com/acceleraterA/go_app_udemy/internal/render"
 )
@@ -34,8 +34,6 @@ func NewHandler(repo *Repository) {
 
 // Home renders the home page and displays form
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
-	remoteIP := r.RemoteAddr
-	m.App.Session.Put(r.Context(), "remote_ip", remoteIP)
 
 	render.RenderTemplate(w, "home.page.tmpl", &models.TemplateData{}, r)
 }
@@ -43,13 +41,7 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 // About renders the about page and displays form
 func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 	//perform some logic
-	stringMap := make(map[string]string)
-	stringMap["test"] = "Hello"
-	remoteIP := m.App.Session.GetString(r.Context(), "remote_ip")
-
-	stringMap["remote_ip"] = remoteIP
-	//send the data to the template
-	render.RenderTemplate(w, "about.page.tmpl", &models.TemplateData{StringMap: stringMap}, r)
+	render.RenderTemplate(w, "about.page.tmpl", &models.TemplateData{}, r)
 }
 
 // Reservation renders the make a reservation page and displays form
@@ -66,8 +58,9 @@ func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
 // PostReservation handles the posting of a reservation form
 func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
+
 	if err != nil {
-		log.Println(err)
+		helpers.ServerError(w, err)
 		return
 	}
 	reservation := models.Reservation{
@@ -79,7 +72,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	form := forms.New(r.PostForm)
 	//form.Has("first_name", r)
 	form.Required("first_name", "last_name", "email")
-	form.MinLength("first_name", 3, r)
+	form.MinLength("first_name", 3)
 	form.IsEmail("email")
 	if !form.Valid() {
 		data := make(map[string]interface{})
@@ -100,10 +93,11 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
 	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 	if !ok {
-		log.Println("cannot get item from session")
+		m.App.ErrorLog.Println("Can't get error from session")
 		//error msg and redirect to home page
 		m.App.Session.Put(r.Context(), "error", "Can't get reservation from session")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
 	}
 	m.App.Session.Remove(r.Context(), "reservation")
 
@@ -150,7 +144,8 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := json.MarshalIndent(resp, "", "     ")
 	if err != nil {
-		log.Fatal(err)
+		helpers.ServerError(w, err)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
