@@ -2,6 +2,7 @@ package render
 
 import (
 	"encoding/gob"
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -29,7 +30,12 @@ func TestMain(m *testing.M) {
 	session.Cookie.Secure = false
 	// store the session to config app.Session
 	testApp.Session = session
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	testApp.InfoLog = infoLog
+	ErrorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	testApp.ErrorLog = ErrorLog
 	app = &testApp
+
 	//before close the application, run the tests
 	os.Exit(m.Run())
 }
