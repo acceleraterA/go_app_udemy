@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
+	"github.com/acceleraterA/go_app_udemy/internal/driver"
 	"github.com/acceleraterA/go_app_udemy/internal/models"
 	"github.com/acceleraterA/go_app_udemy/internal/render"
 	"github.com/alexedwards/scs/v2"
@@ -41,7 +42,13 @@ func getRoutes() http.Handler {
 	session.Cookie.Secure = app.InProduction
 	// store the session to config app.Session
 	app.Session = session
-
+	//connect to database
+	log.Println("connecting to database...")
+	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=test_connect user=postgres password=Bastille8877,,")
+	if err != nil {
+		log.Fatal("cannot connect to db, dying...")
+	}
+	log.Println("Connected to database!")
 	tc, err := CreateTestTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache", err)
@@ -51,9 +58,9 @@ func getRoutes() http.Handler {
 	app.UseCache = true
 	// give render access to app
 
-	repo := NewRepo(&app)
+	repo := NewRepo(&app, db)
 	NewHandler(repo)
-	render.NewTemplates(&app)
+	render.NewRenderer(&app)
 
 	//copy from routes.go
 	r := chi.NewRouter()
