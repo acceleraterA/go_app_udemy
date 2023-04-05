@@ -13,7 +13,7 @@ func (m *postgresDBRepo) AllUsers() bool {
 	return true
 }
 
-// InsertReservation inserts a reservation into a database
+// InsertReservation inserts a reservation into a database and return the new reservation id
 func (m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
 	//close the transaction after the 5 minutes lifetime if nothing is happening
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -86,4 +86,39 @@ func (m *postgresDBRepo) SearchAvalibilityByDatesByRoomID(start, end time.Time, 
 		return false, err
 	}
 	return numRows == 0, nil
+}
+
+// returns a slice of available rooms, if any for given date range
+func (m *postgresDBRepo) SearchAvalibilityForAllRooms(start, end time.Time) ([]models.Room, error) {
+	//close the transaction after the 5 minutes lifetime if nothing is happening
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var rooms []models.Room
+	query :=
+		`SELECT
+    	r.id, r.room_name
+	FROM
+    	rooms r
+	where
+	r.id not in (select rr.room_id from room_restrictions rr where $1 <rr.end_date and $2 >rr.start_date)`
+
+	rows, err := m.DB.QueryContext(ctx, query, start, end)
+
+	if err != nil {
+		log.Println(err)
+		return rooms, err
+	}
+	for rows.Next() {
+		var room models.Room
+		err := rows.Scan(&room.ID, &room.RoomName)
+		if err != nil {
+			return rooms, err
+		}
+		rooms = append(rooms, room)
+	}
+	//check err again when done with scanning
+	if err = rows.Err(); err != nil {
+		return rooms, err
+	}
+	return rooms, nil
 }

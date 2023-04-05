@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/acceleraterA/go_app_udemy/internal/render"
 	"github.com/acceleraterA/go_app_udemy/internal/repository"
 	"github.com/acceleraterA/go_app_udemy/internal/repository/dbrepo"
+	"github.com/go-chi/chi"
 )
 
 // Repo the repository used by handlers
@@ -122,7 +122,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		helpers.ServerError(w, err)
 		return
 	}
-	//restriction
+	//insert a restriction
 	restriction := models.RoomRestriction{
 		StartDate:     startDate,
 		EndDate:       endDate,
@@ -141,7 +141,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/reservation-summary", http.StatusSeeOther)
 }
 
-// PostAvailability renders availability page
+// ReservationSummary
 func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
 	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 	if !ok {
@@ -173,14 +173,84 @@ func (m *Repository) Generals(w http.ResponseWriter, r *http.Request) {
 
 // Availability renders the search availability page and displays form
 func (m *Repository) Availability(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, "search-availability.page.tmpl", &models.TemplateData{}, r)
+	/*
+		var emptyRoomRestriction models.RoomRestriction
+		data := make(map[string]interface{})
+		data["roomRestriction"] = emptyRoomRestriction*/
+	render.Template(w, "search-availability.page.tmpl", &models.TemplateData{
+		//Form: forms.New(nil),
+		//Data: data,
+	}, r)
 }
 
 // PostAvailability renders availability page
 func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
-	start := r.Form.Get("start")
-	end := r.Form.Get("end")
-	w.Write([]byte(fmt.Sprintf("Posted to search to search availibility between %s and %s", start, end)))
+	err := r.ParseForm()
+
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	//parse the date
+	sd := r.Form.Get("start")
+	ed := r.Form.Get("end")
+	layout := "2006-01-02"
+	start, err := time.Parse(layout, sd)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	end, err := time.Parse(layout, ed)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	rooms, err := m.DB.SearchAvalibilityForAllRooms(start, end)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	for _, i := range rooms {
+		m.App.InfoLog.Println("room:", i.ID, i.RoomName)
+	}
+	if len(rooms) == 0 {
+		//no availability
+		m.App.Session.Put(r.Context(), "error", "No availability")
+		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
+		return
+	}
+	data := make(map[string]interface{})
+	data["rooms"] = rooms
+
+	res := models.Reservation{
+
+		StartDate: start,
+		EndDate:   end,
+	}
+	m.App.Session.Put(r.Context(), "reservation", res)
+	render.Template(w, "choose-room.page.tmpl", &models.TemplateData{
+		Data: data,
+	}, r)
+}
+
+// Majors renders the majors page and displays form
+func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
+	roomID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	res, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
+	if !ok {
+		helpers.ServerError(w, err)
+		return
+	}
+	res.RoomID = roomID
+
+	m.App.Session.Put(r.Context(), "reservation", res)
+	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
+
 }
 
 type jsonResponse struct {
