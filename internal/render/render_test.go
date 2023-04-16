@@ -22,7 +22,7 @@ func TestAddDefaultData(t *testing.T) {
 		t.Error("failed")
 	}
 }
-func TestRenderTemplate(t *testing.T) {
+func TestTemplate(t *testing.T) {
 	pathToTemplates = "./../../templates"
 	tc, err := CreateTemplateCache()
 	if err != nil {
@@ -59,7 +59,7 @@ func getSession() (*http.Request, error) {
 	return r, nil
 }
 
-func TestNewTemplate(t *testing.T) {
+func TestNewRenderer(t *testing.T) {
 	NewRenderer(app)
 
 }

@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
-	"github.com/acceleraterA/go_app_udemy/internal/driver"
 	"github.com/acceleraterA/go_app_udemy/internal/models"
 	"github.com/acceleraterA/go_app_udemy/internal/render"
 	"github.com/alexedwards/scs/v2"
@@ -25,7 +25,7 @@ var session *scs.SessionManager
 var pathToTemplates = "./../../templates"
 var functions = template.FuncMap{}
 
-func getRoutes() http.Handler {
+func TestMain(m *testing.M) {
 	// (register the reservation object to session) what am I going to put in the session
 	gob.Register(models.Reservation{})
 	//change this to true when in production
@@ -44,11 +44,12 @@ func getRoutes() http.Handler {
 	app.Session = session
 	//connect to database
 	log.Println("connecting to database...")
-	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=test_connect user=postgres password=Bastille8877,,")
-	if err != nil {
-		log.Fatal("cannot connect to db, dying...")
-	}
-	log.Println("Connected to database!")
+	/*db, err := driver.ConnectSQL("host=localhost port=5432 dbname=test_connect user=postgres password=Bastille8877,,")
+	  if err != nil {
+	  	log.Fatal("cannot connect to db, dying...")
+	  }
+	  log.Println("Connected to database!")
+	*/
 	tc, err := CreateTestTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache", err)
@@ -58,10 +59,14 @@ func getRoutes() http.Handler {
 	app.UseCache = true
 	// give render access to app
 
-	repo := NewRepo(&app, db)
+	repo := NewTestRepo(&app)
 	NewHandler(repo)
 	render.NewRenderer(&app)
 
+	os.Exit(m.Run())
+
+}
+func getRoutes() http.Handler {
 	//copy from routes.go
 	r := chi.NewRouter()
 
