@@ -50,6 +50,12 @@ func TestMain(m *testing.M) {
 	  }
 	  log.Println("Connected to database!")
 	*/
+	mailChan := make(chan models.MailData)
+	app.MailChan = mailChan
+	defer close(app.MailChan)
+	fmt.Println("starting mail listener...")
+	//duplicate the function in actual application
+	listenForMail()
 	tc, err := CreateTestTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache", err)
@@ -141,4 +147,15 @@ func CreateTestTemplateCache() (map[string]*template.Template, error) {
 		myCache[name] = ts
 	}
 	return myCache, nil
+}
+
+// skip actual sending mail
+func listenForMail() {
+	go func() {
+		//infinate for loop
+		for {
+			_ = <-app.MailChan
+
+		}
+	}()
 }

@@ -1,2 +1,2 @@
 #!/bin/bash
-go run cmd/web/main.go cmd/web/middleware.go cmd/web/routes.go
+go run cmd/web/main.go cmd/web/middleware.go cmd/web/routes.go cmd/web/send-mail.go

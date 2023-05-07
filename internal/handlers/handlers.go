@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -190,6 +191,37 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
+
+	//send notifications-first to guest
+	//create msg and add to mailchan
+	htmlMessage := fmt.Sprintf(`
+	<strong>Reservation Confirmation</strong><br>
+	Dear %s, <br>
+	This is to confirm your reservation from %s to %s
+	`, reservation.FirstName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+
+	msg := models.MailData{
+		To:       reservation.Email,
+		From:     "me@here.com",
+		Subject:  "Reservation Confirmation",
+		Content:  htmlMessage,
+		Template: "basic.html",
+	}
+	m.App.MailChan <- msg
+	//send notifications-to owner
+	//create msg and add to mailchan
+	htmlMessage = fmt.Sprintf(`
+	<strong>Reservation Notification</strong><br>
+	%s has been book from %s to %s
+	`, reservation.Room.RoomName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+
+	msg = models.MailData{
+		To:      "owner@here.com",
+		From:    "me@here.com",
+		Subject: "Reservation Notification",
+		Content: htmlMessage,
+	}
+	m.App.MailChan <- msg
 	// take the reservation object to reservation summary page
 	m.App.Session.Put(r.Context(), "reservation", reservation)
 	//redirect the page
@@ -360,7 +392,7 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 		out, _ := json.MarshalIndent(resp, "", "     ")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(out)
-
+		return
 	}
 	sd := r.Form.Get("start")
 	ed := r.Form.Get("end")
@@ -377,7 +409,7 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 		helpers.ServerError(w, err)
 		return
 	}
-	available, err := m.DB.SearchAvalibilityByDatesByRoomID(startDate, endDate, roomID)
+	available, err := m.DB.SearchAvailabilityByDatesByRoomID(startDate, endDate, roomID)
 	if err != nil {
 		resp := jsonResponse{
 			Ok:      false,
@@ -386,6 +418,7 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 		out, _ := json.MarshalIndent(resp, "", "     ")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(out)
+		return
 	}
 	resp := jsonResponse{
 		Ok:        available,

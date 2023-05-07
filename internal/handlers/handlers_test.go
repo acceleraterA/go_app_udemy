@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -279,8 +280,141 @@ func TestRepository_PostReservation(t *testing.T) {
 
 }
 
-func TestRepository_ReservationSummary(t *testing.T) {
+func TestRepository_AvailabilityJSON(t *testing.T) {
+	//case 1 - rooms are not available
 
+	reqBody := "start=2050-01-01"
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "end=2050-01-02")
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "room_id=3")
+
+	//create request
+	req, _ := http.NewRequest("POST", "/search-availability-json", strings.NewReader(reqBody))
+	//add header to ctx and ass ctx to req
+	ctx := getCtx(req)
+	req = req.WithContext(ctx)
+	//set hte request header
+	req.Header.Set("content-Type", "application/x-www-form-urlencoded")
+	//get respose recorder
+	rr := httptest.NewRecorder()
+	//make handler handlerfunc
+	handler := http.HandlerFunc(Repo.AvailabilityJSON)
+
+	handler.ServeHTTP(rr, req)
+
+	var j jsonResponse
+
+	err := json.Unmarshal([]byte(rr.Body.String()), &j)
+
+	if err != nil {
+		t.Error("faild to parse json")
+	}
+	// since we specified a start date > 2049-12-31, we expect no availability
+	if j.Ok {
+		t.Error("Got availability when none was expected in AvailabilityJSON")
+	}
+
+	//case 2 - rooms are available
+
+	reqBody = "start=2040-01-01"
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "end=2040-01-02")
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "room_id=1")
+
+	//create request
+	req, _ = http.NewRequest("POST", "/search-availability-json", strings.NewReader(reqBody))
+	//add header to ctx and ass ctx to req
+	ctx = getCtx(req)
+	req = req.WithContext(ctx)
+	//set hte request header
+	req.Header.Set("content-Type", "application/x-www-form-urlencoded")
+	//get respose recorder
+	rr = httptest.NewRecorder()
+	//make handler handlerfunc
+	handler = http.HandlerFunc(Repo.AvailabilityJSON)
+
+	handler.ServeHTTP(rr, req)
+
+	err = json.Unmarshal([]byte(rr.Body.String()), &j)
+
+	if err != nil {
+		t.Error("faild to parse json")
+	}
+	// since we specified a start date > 2049-12-31, we expect no availability
+	if !j.Ok {
+		t.Error("Got no availability when some was expected in AvailabilityJSON")
+	}
+
+	//case 3 - no request body
+	//create request
+	req, _ = http.NewRequest("POST", "/search-availability-json", nil)
+	//add header to ctx and ass ctx to req
+	ctx = getCtx(req)
+	req = req.WithContext(ctx)
+	//set hte request header
+	req.Header.Set("content-Type", "application/x-www-form-urlencoded")
+	//get respose recorder
+	rr = httptest.NewRecorder()
+	//make handler handlerfunc
+	handler = http.HandlerFunc(Repo.AvailabilityJSON)
+
+	handler.ServeHTTP(rr, req)
+
+	err = json.Unmarshal([]byte(rr.Body.String()), &j)
+
+	if err != nil {
+		t.Error("faild to parse json")
+	}
+	// response for err parseform
+	if j.Ok || j.Message != "Internal server error" {
+		t.Error("Got availability when request body was empty")
+	}
+
+	//case 4 - database error
+	//create request
+	reqBody = "start=2060-01-01"
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "end=2060-01-02")
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "room_id=1")
+	req, _ = http.NewRequest("POST", "/search-availability-json", strings.NewReader(reqBody))
+	//add header to ctx and ass ctx to req
+	ctx = getCtx(req)
+	req = req.WithContext(ctx)
+	//set hte request header
+	req.Header.Set("content-Type", "application/x-www-form-urlencoded")
+	//get respose recorder
+	rr = httptest.NewRecorder()
+	//make handler handlerfunc
+	handler = http.HandlerFunc(Repo.AvailabilityJSON)
+
+	handler.ServeHTTP(rr, req)
+
+	err = json.Unmarshal([]byte(rr.Body.String()), &j)
+
+	if err != nil {
+		t.Error("faild to parse json")
+	}
+	// response for err parseform
+	if j.Ok || j.Message != "Error connecting to database" {
+		t.Error("Got availability when simulating database error")
+	}
+}
+
+func TestRepository_PostAvailability(t *testing.T) {
+	reqBody := "start=2050-01-01"
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "end=2050-01-02")
+	reqBody = fmt.Sprintf("%s&%s", reqBody, "room_id=3")
+
+	//create request
+	req, _ := http.NewRequest("POST", "/search-availability-json", strings.NewReader(reqBody))
+	//add header to ctx and ass ctx to req
+	ctx := getCtx(req)
+	req = req.WithContext(ctx)
+	//set hte request header
+	req.Header.Set("content-Type", "application/x-www-form-urlencoded")
+	//get respose recorder
+	rr := httptest.NewRecorder()
+	//make handler handlerfunc
+	handler := http.HandlerFunc(Repo.AvailabilityJSON)
+
+	handler.ServeHTTP(rr, req)
 }
 
 // getCtx returns the ctx with header

@@ -65,8 +65,8 @@ func (m *postgresDBRepo) InsertRoomRestriction(res models.RoomRestriction) error
 	return nil
 }
 
-// SearchAvalibilityByDatesByRoomID return s true if avaiability exists for roomID,
-func (m *postgresDBRepo) SearchAvalibilityByDatesByRoomID(start, end time.Time, roomID int) (bool, error) {
+// SearchAvailabilityByDatesByRoomID return s true if avaiability exists for roomID,
+func (m *postgresDBRepo) SearchAvailabilityByDatesByRoomID(start, end time.Time, roomID int) (bool, error) {
 	//close the transaction after the 5 minutes lifetime if nothing is happening
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

@@ -14,6 +14,7 @@ import (
 	"github.com/acceleraterA/go_app_udemy/internal/helpers"
 	"github.com/acceleraterA/go_app_udemy/internal/models"
 	"github.com/acceleraterA/go_app_udemy/internal/render"
+
 	scs "github.com/alexedwards/scs/v2"
 )
 
@@ -31,6 +32,11 @@ func main() {
 	}
 	//close the database when the main(app) is stopped running
 	defer db.SQL.Close()
+	defer close(app.MailChan)
+	fmt.Println("starting mail listener...")
+	//start the function to listen for app.mailChan and send the msg
+	listenForMail()
+
 	fmt.Printf(fmt.Sprintf("Starting application on port %s", portNumber))
 
 	srv := &http.Server{
@@ -47,6 +53,9 @@ func run() (*driver.DB, error) {
 	gob.Register(models.Room{})
 	gob.Register(models.Restriction{})
 	gob.Register(models.RoomRestriction{})
+
+	mailChan := make(chan models.MailData)
+	app.MailChan = mailChan
 	//change this to true when in production
 	app.InProduction = false
 
