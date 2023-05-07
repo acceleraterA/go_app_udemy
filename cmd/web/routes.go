@@ -20,6 +20,8 @@ func routes(app *config.AppConfig) http.Handler {
 	r.Get("/about", handlers.Repo.About)
 	r.Get("/generals-quarters", handlers.Repo.Generals)
 	r.Get("/majors-suite", handlers.Repo.Majors)
+	r.Get("/choose-room/{id}", handlers.Repo.ChooseRoom)
+	r.Get("/book-room", handlers.Repo.BookRoom)
 
 	r.Get("/search-availability", handlers.Repo.Availability)
 	r.Post("/search-availability", handlers.Repo.PostAvailability)
