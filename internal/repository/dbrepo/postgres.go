@@ -2,10 +2,12 @@ package dbrepo
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/acceleraterA/go_app_udemy/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // define function for postgresDBrepo
@@ -140,4 +142,58 @@ where id=$1`
 		return room, err
 	}
 	return room, nil
+}
+
+// GetUserByID gets a user by id and return user
+func (m *postgresDBRepo) GetUserByID(id int) (models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user models.User
+	query := `select id,first_name, last_name,email,password, access_level, created_at, updated_at
+	 from users where id=$1`
+	row := m.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AccessLevel, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		log.Println(err)
+		return user, err
+	}
+	return user, nil
+}
+
+func (m *postgresDBRepo) UpdateUser(u models.User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `update users set first_name=$1,last_name=$2,email=$3,access_level=$4,updated_at=$5 
+	`
+	_, err := m.DB.ExecContext(ctx, query, u.FirstName, u.LastName, u.Email, u.AccessLevel, time.Now())
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+// Authenticate a user
+func (m *postgresDBRepo) Authenticate(email, testPassword string) (int, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var id int
+	var hashedPassword string
+
+	row := m.DB.QueryRowContext(ctx, "select id,password from users where email=$1", email)
+	err := row.Scan(&id, &hashedPassword)
+	if err != nil {
+		log.Println(err)
+		return id, "", err
+	} else {
+		//check if the testpassword match with the one in database, cased with byte
+		err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(testPassword))
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			//_,err=m.DB.ExecContext(ctx,"update users set password=$1",)
+			return 0, "", errors.New("incorrect password")
+		} else if err != nil {
+			return 0, "", err
+		}
+		return id, hashedPassword, nil
+	}
 }
