@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -152,6 +153,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		EndDate:   endDate,
 		RoomID:    roomID,
 	}
+	//form validation
 	form := forms.New(r.PostForm)
 	form.Required("first_name", "last_name", "email")
 	form.MinLength("first_name", 2)
@@ -168,7 +170,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		}, r)
 		return
 	}
-
+	//insert reservation
 	newReservationID, err := m.DB.InsertReservation(reservation)
 
 	if err != nil {
@@ -438,4 +440,62 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 // Contact renders the contact page and displays form
 func (m *Repository) Contact(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, "contact.page.tmpl", &models.TemplateData{}, r)
+}
+
+// Showlogin renders the contact page and displays form
+func (m *Repository) ShowLogin(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, "login.page.tmpl", &models.TemplateData{
+		Form: forms.New(nil),
+	}, r)
+}
+
+// post - handles the user logging in
+func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
+	//every time login logout, renew the token
+	_ = m.App.Session.RenewToken(r.Context())
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+	form := forms.New(r.PostForm)
+	form.Required("email", "password")
+	form.IsEmail("email")
+	if !form.Valid() {
+		render.Template(w, "login.page.tmpl", &models.TemplateData{
+			Form: form,
+		}, r)
+		return
+	}
+
+	id, _, err := m.DB.Authenticate(email, password)
+	if err != nil {
+		log.Println(err)
+
+		m.App.Session.Put(r.Context(), "error", "Invalid login credentials")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "flash", "Logged in successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	//user, err := m.DB.GetUserByID(id)
+	//err = m.DB.UpdateUser(user)
+}
+
+// logs a user out
+func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
+	//destroy session
+	_ = m.App.Session.Destroy(r.Context())
+	//renew token
+	_ = m.App.Session.RenewToken(r.Context())
+
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+}
+
+func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, "admin-dashboard.page.tmpl", &models.TemplateData{}, r)
 }

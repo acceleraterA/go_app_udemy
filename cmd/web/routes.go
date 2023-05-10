@@ -31,7 +31,14 @@ func routes(app *config.AppConfig) http.Handler {
 	r.Get("/make-reservation", handlers.Repo.Reservation)
 	r.Post("/make-reservation", handlers.Repo.PostReservation)
 	r.Get("/reservation-summary", handlers.Repo.ReservationSummary)
-
+	r.Get("/user/login", handlers.Repo.ShowLogin)
+	r.Post("/user/login", handlers.Repo.PostShowLogin)
+	r.Get("/user/logout", handlers.Repo.Logout)
+	//redirect to secure page for admin user
+	r.Route("/admin", func(r chi.Router) {
+		r.Use(Auth)
+		r.Get("/dashboard", handlers.Repo.AdminDashboard)
+	})
 	fileServer := http.FileServer(http.Dir("./static/"))
 	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
 	return r
