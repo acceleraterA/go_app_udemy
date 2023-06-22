@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
@@ -498,4 +499,183 @@ func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, "admin-dashboard.page.tmpl", &models.TemplateData{}, r)
+}
+
+func (m *Repository) AdminNewReservations(w http.ResponseWriter, r *http.Request) {
+	reservations, err := m.DB.GetNewReservations()
+	if err != nil {
+		log.Println(err)
+	}
+
+	data := make(map[string]interface{})
+	data["reservations"] = reservations
+	render.Template(w, "admin-new-reservations.page.tmpl", &models.TemplateData{
+		Data: data,
+	}, r)
+}
+
+func (m *Repository) AdminAllReservations(w http.ResponseWriter, r *http.Request) {
+	reservations, err := m.DB.GetAllReservations()
+	if err != nil {
+		log.Println(err)
+	}
+
+	data := make(map[string]interface{})
+	data["reservations"] = reservations
+	render.Template(w, "admin-all-reservations.page.tmpl", &models.TemplateData{
+		Data: data,
+	}, r)
+}
+func (m *Repository) AdminReservationsCalendar(w http.ResponseWriter, r *http.Request) {
+	//assume there is no month and year specified
+	now := time.Now()
+
+	if r.URL.Query().Get("y") != "" {
+		year, _ := strconv.Atoi(r.URL.Query().Get("y"))
+		month, _ := strconv.Atoi(r.URL.Query().Get("m"))
+		//reset now
+		now = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	}
+	data := make(map[string]interface{})
+	data["now"] = now
+
+	next := now.AddDate(0, 1, 0)
+	last := now.AddDate(0, -1, 0)
+
+	nextMonth := next.Format("01")
+	nextMonthYear := next.Format("2006")
+
+	lastMonth := last.Format("01")
+	lastMonthYear := last.Format("2006")
+	stringMap := make(map[string]string)
+	stringMap["next_month"] = nextMonth
+	stringMap["next_month_year"] = nextMonthYear
+	stringMap["last_month"] = lastMonth
+	stringMap["last_month_year"] = lastMonthYear
+	stringMap["this_month"] = now.Format("01")
+	stringMap["this_month_year"] = now.Format("2006")
+
+	//get the first and last days of the monthm use date: Date returns the year, month, and day in which t occurs
+	currentYear, currentMonth, _ := now.Date()
+	//get current timezone
+	currentTZ := now.Location()
+
+	firstOfMonth := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, currentTZ)
+	//lastofmonth is the firstofmonth add one month and minus one day
+	lastOfMonth := firstOfMonth.AddDate(0, 1, -1)
+	//save days in month to int map
+	intMap := make(map[string]int)
+	intMap["days_in_month"] = lastOfMonth.Day()
+	//get rooms
+	rooms, err := m.DB.AllRooms()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	data["rooms"] = rooms
+	render.Template(w, "admin-reservations-calendar.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+		Data:      data,
+		IntMap:    intMap,
+	}, r)
+}
+
+func (m *Repository) AdminShowReservation(w http.ResponseWriter, r *http.Request) {
+	//get id
+	exploded := strings.Split(r.RequestURI, "/")
+	id, err := strconv.Atoi(exploded[4])
+	if err != nil {
+		helpers.ServerError(w, err)
+		log.Println(err)
+		return
+	}
+	//get source all/new
+	src := exploded[3]
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+
+	//get a reservation from database
+
+	res, err := m.DB.GetReservationByID(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	//save res, stringmap and form to data, and render template
+	data := make(map[string]interface{})
+	data["reservation"] = res
+	render.Template(w, "admin-reservations-show.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+		Data:      data,
+		Form:      forms.New(nil),
+	}, r)
+}
+
+/*
+	btns:
+
+click save to update reservation
+click cancel returns to all/new reservation list page
+click process to mark res as process but only show up when it has not been processed
+click delete
+*/
+func (m *Repository) AdminPostShowReservation(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	//get id
+	exploded := strings.Split(r.RequestURI, "/")
+	id, err := strconv.Atoi(exploded[4])
+	if err != nil {
+		helpers.ServerError(w, err)
+		log.Println(err)
+		return
+	}
+	//get source all/new
+	src := exploded[3]
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+	//get a reservation from database
+
+	res, err := m.DB.GetReservationByID(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	//update reservation model using the form info from template
+	res.FirstName = r.Form.Get("first_name")
+	res.LastName = r.Form.Get("last_name")
+	res.Email = r.Form.Get("email")
+	res.Phone = r.Form.Get("phone")
+	err = m.DB.UpdateReservation(res)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	//redirect to list of reservations
+	m.App.Session.Put(r.Context(), "flash", "Changes saved")
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
+}
+
+// mark the res as processed
+func (m *Repository) AdminProcessReservation(w http.ResponseWriter, r *http.Request) {
+	//get id and src using urlparam
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	src := chi.URLParam(r, "src")
+	_ = m.DB.UpdateProcessedForReservation(id, 1)
+	m.App.Session.Put(r.Context(), "flash", "Reservation marked as processed")
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
+}
+
+// delete the res
+func (m *Repository) AdminDeleteReservation(w http.ResponseWriter, r *http.Request) {
+	//get id and src using urlparam
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	src := chi.URLParam(r, "src")
+	_ = m.DB.DeleteReservation(id)
+	m.App.Session.Put(r.Context(), "flash", "Reservation deleted")
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
 }

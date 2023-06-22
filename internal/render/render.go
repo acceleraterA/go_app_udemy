@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/acceleraterA/go_app_udemy/internal/config"
 	"github.com/acceleraterA/go_app_udemy/internal/models"
@@ -16,12 +17,23 @@ import (
 var app *config.AppConfig
 var pathToTemplates = "./templates"
 
-//var functions = template.FuncMap{}
+var functions = template.FuncMap{
+	"humanDate":  HumanDate,
+	"formatDate": FormatDate,
+}
 
 // NewRenderer sets the config for the template package
 func NewRenderer(a *config.AppConfig) {
 	app = a
+}
 
+// returns time in YYYY-MM-DD formant
+func HumanDate(t time.Time) string {
+	return t.Format("2006-01-02")
+}
+
+func FormatDate(t time.Time, f string) string {
+	return t.Format(f)
 }
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	//flush error and warning will be automatically populated when we rendering the templates
@@ -76,7 +88,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		//get the name of page
 		name := filepath.Base(page)
 		//create new template from page named name
-		ts, err := template.New(name).ParseFiles(page)
+		ts, err := template.New(name).Funcs(functions).ParseFiles(page)
 		if err != nil {
 			return myCache, err
 		}

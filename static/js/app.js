@@ -82,13 +82,6 @@ function Prompt() {
                 if (c.didOpen !== undefined) {
                     c.didOpen();
                 }
-            },
-            //return [start, end]
-            preConfirm: () => {
-                return [
-                    document.getElementById('start').value,
-                    document.getElementById('end').value
-                ]
             }
 
         })

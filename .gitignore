@@ -3,3 +3,4 @@
 *.yml
 **/coverage.out
 /sql_scripts
+static/admin

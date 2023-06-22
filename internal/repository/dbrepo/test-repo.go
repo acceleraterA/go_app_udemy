@@ -96,3 +96,47 @@ func (m *testDBRepo) Authenticate(email, testPassword string) (int, string, erro
 	//var hashedPassword string
 	return 1, "", nil
 }
+
+// returns a slice of all reservations
+func (m *testDBRepo) GetAllReservations() ([]models.Reservation, error) {
+
+	var reservations []models.Reservation
+
+	return reservations, nil
+}
+
+// returns a slice of all reservations
+func (m *testDBRepo) GetNewReservations() ([]models.Reservation, error) {
+
+	var reservations []models.Reservation
+
+	return reservations, nil
+}
+
+// returns one reservation by ID
+func (m *testDBRepo) GetReservationByID(id int) (models.Reservation, error) {
+
+	var res models.Reservation
+
+	return res, nil
+}
+
+func (m *testDBRepo) UpdateReservation(u models.Reservation) error {
+
+	return nil
+}
+
+func (m *testDBRepo) DeleteReservation(id int) error {
+
+	return nil
+}
+
+func (m *testDBRepo) UpdateProcessedForReservation(id int, processed int) error {
+
+	return nil
+}
+
+func (m *testDBRepo) AllRooms() ([]models.Room, error) {
+	var rooms []models.Room
+	return rooms, nil
+}
