@@ -20,6 +20,17 @@ var pathToTemplates = "./templates"
 var functions = template.FuncMap{
 	"humanDate":  HumanDate,
 	"formatDate": FormatDate,
+	"iterate":    Iterate,
+}
+
+// iterate returns a slice of int starting at 1 going to count
+func Iterate(count int) []int {
+	var i int
+	var items []int
+	for i = 1; i <= count; i++ {
+		items = append(items, i)
+	}
+	return items
 }
 
 // NewRenderer sets the config for the template package

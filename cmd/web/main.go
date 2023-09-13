@@ -53,6 +53,7 @@ func run() (*driver.DB, error) {
 	gob.Register(models.Room{})
 	gob.Register(models.Restriction{})
 	gob.Register(models.RoomRestriction{})
+	gob.Register(map[string]int{})
 
 	mailChan := make(chan models.MailData)
 	app.MailChan = mailChan
@@ -75,7 +76,7 @@ func run() (*driver.DB, error) {
 	//connect to database
 	log.Println("connecting to database...")
 	//password will be updated later
-	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=bookings user=postgres password=")
+	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=bookings user=postgres password=Bastille8877,,")
 	if err != nil {
 		log.Fatal("cannot connect to db, dying...")
 	}
