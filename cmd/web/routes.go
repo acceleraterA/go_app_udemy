@@ -46,6 +46,7 @@ func routes(app *config.AppConfig) http.Handler {
 		r.Get("/delete-reservation/{src}/{id}", handlers.Repo.AdminDeleteReservation)
 		r.Get("/reservations/{src}/{id}", handlers.Repo.AdminShowReservation)
 		r.Post("/reservations/{src}/{id}", handlers.Repo.AdminPostShowReservation)
+		r.Post("/reservations-calendar", handlers.Repo.AdminPostReservationsCalendar)
 	})
 	fileServer := http.FileServer(http.Dir("./static/"))
 	r.Handle("/static/*", http.StripPrefix("/static", fileServer))

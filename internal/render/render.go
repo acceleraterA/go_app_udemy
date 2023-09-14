@@ -21,6 +21,11 @@ var functions = template.FuncMap{
 	"humanDate":  HumanDate,
 	"formatDate": FormatDate,
 	"iterate":    Iterate,
+	"add":        Add,
+}
+
+func Add(a, b int) int {
+	return a + b
 }
 
 // iterate returns a slice of int starting at 1 going to count
