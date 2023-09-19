@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -30,22 +31,13 @@ var theTests = []struct {
 	{"ms", "/majors-suite", "GET", http.StatusOK},
 	{"sa", "/search-availability", "GET", http.StatusOK},
 	{"contact", "/contact", "GET", http.StatusOK},
-	//{"rs", "/reservation-summary", "GET", http.StatusOK},
-
-	// {"sap", "/search-availability", "POST", []postData{
-	// 	{key: "start", value: "e2023-03-23"},
-	// 	{key: "end", value: "e2023-03-24"},
-	// }, http.StatusOK},
-	// {"sajp", "/search-availability-json", "POST", []postData{
-	// 	{key: "start", value: "e2023-03-23"},
-	// 	{key: "end", value: "e2023-03-24"},
-	// }, http.StatusOK},
-	// {"mrp", "/make-reservation", "POST", []postData{
-	// 	{key: "first_name", value: "John"},
-	// 	{key: "last_name", value: "Smith"},
-	// 	{key: "email", value: "John@gmail.com"},
-	// 	{key: "phone", value: "1234543545"},
-	// }, http.StatusOK},
+	{"non-existent", "/green", "GET", http.StatusNotFound},
+	{"login", "/user/login", "GET", http.StatusOK},
+	{"logout", "/user/logout", "GET", http.StatusOK},
+	{"dashboard", "/admin/dashboard", "GET", http.StatusOK},
+	{"new res", "/admin/reservations-new", "GET", http.StatusOK},
+	{"all res", "/admin/reservations-all", "GET", http.StatusOK},
+	{"show res", "/admin/reservations/new/1/show", "GET", http.StatusOK},
 }
 
 func TestHandlers(t *testing.T) {
@@ -415,6 +407,125 @@ func TestRepository_PostAvailability(t *testing.T) {
 	handler := http.HandlerFunc(Repo.AvailabilityJSON)
 
 	handler.ServeHTTP(rr, req)
+}
+
+// bookRoomTests is the data for the BookRoom handler tests
+var bookRoomTests = []struct {
+	name               string
+	url                string
+	expectedStatusCode int
+}{
+	{
+		name:               "database-works",
+		url:                "/book-room?s=2050-01-01&e=2050-01-02&id=1",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "database-fails",
+		url:                "/book-room?s=2040-01-01&e=2040-01-02&id=3",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+}
+
+// TestBookRoom tests the BookRoom handler
+func TestBookRoom(t *testing.T) {
+	reservation := models.Reservation{
+		RoomID: 1,
+		Room: models.Room{
+			ID:       1,
+			RoomName: "General's Quarters",
+		},
+	}
+
+	for _, e := range bookRoomTests {
+		req, _ := http.NewRequest("GET", e.url, nil)
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		session.Put(ctx, "reservation", reservation)
+
+		handler := http.HandlerFunc(Repo.BookRoom)
+
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusSeeOther {
+			t.Errorf("%s failed: returned wrong response code: got %d, wanted %d", e.name, rr.Code, e.expectedStatusCode)
+		}
+	}
+}
+
+var loginTests = []struct {
+	name               string
+	email              string
+	expectedStatusCode int
+	expectedHTML       string
+	expectedLocation   string
+}{
+	{
+		"valid-credentials",
+		"me@here.ca",
+		http.StatusSeeOther,
+		"",
+		"/",
+	},
+	{
+		"invalid-credentials",
+		"jack@nimble.com",
+		http.StatusSeeOther,
+		"",
+		"/user/login",
+	},
+	{
+		"invalid-data",
+		"j",
+		http.StatusOK,
+		`"action="/user/login"`,
+		"",
+	},
+}
+
+func TestLogin(t *testing.T) {
+	//range through all the tests
+	for _, e := range loginTests {
+		postedData := url.Values{}
+		postedData.Add("email", e.email)
+		postedData.Add("password", "password")
+		// create request
+		req, _ := http.NewRequest("POST", "/user/login", strings.NewReader(postedData.Encode()))
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		// set the header
+		req.Header.Set("content-type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+
+		// call the handler
+		handler := http.HandlerFunc(Repo.PostShowLogin)
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("failed %s: expected code %d, but got %d", e.name, e.expectedStatusCode, rr.Code)
+		}
+		if e.expectedLocation != "" {
+
+			//get the URL from test
+			actualLoc, _ := rr.Result().Location()
+			if actualLoc.String() != e.expectedLocation {
+				t.Errorf("failed %s: expected location %s, but got location %s", e.name, e.expectedLocation, actualLoc.String())
+
+			}
+			// checking for expected values in HTML
+			if e.expectedHTML != "" {
+				//read the response body into a string
+				html := rr.Body.String()
+				if !strings.Contains(html, e.expectedHTML) {
+					t.Errorf("failed %s: expected to find %s but did not", e.name, e.expectedHTML)
+				}
+
+			}
+		}
+	}
 }
 
 // getCtx returns the ctx with header

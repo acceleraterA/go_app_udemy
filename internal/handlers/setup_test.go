@@ -23,11 +23,21 @@ import (
 var app config.AppConfig
 var session *scs.SessionManager
 var pathToTemplates = "./../../templates"
-var functions = template.FuncMap{}
+var functions = template.FuncMap{
+	"humanDate":  render.HumanDate,
+	"formatDate": render.FormatDate,
+	"iterate":    render.Iterate,
+	"add":        render.Add,
+}
 
 func TestMain(m *testing.M) {
 	// (register the reservation object to session) what am I going to put in the session
 	gob.Register(models.Reservation{})
+	gob.Register(models.User{})
+	gob.Register(models.Room{})
+	gob.Register(models.Restriction{})
+	gob.Register(models.RoomRestriction{})
+	gob.Register(map[string]int{})
 	//change this to true when in production
 	app.InProduction = false
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -93,6 +103,19 @@ func getRoutes() http.Handler {
 	r.Get("/make-reservation", Repo.Reservation)
 	r.Post("/make-reservation", Repo.PostReservation)
 	r.Get("/reservation-summary", Repo.ReservationSummary)
+	r.Get("/user/login", Repo.ShowLogin)
+	r.Post("/user/login", Repo.PostShowLogin)
+	r.Get("/user/logout", Repo.Logout)
+	r.Get("/admin/dashboard", Repo.AdminDashboard)
+
+	r.Get("/admin/reservations-new", Repo.AdminNewReservations)
+	r.Get("/admin/reservations-all", Repo.AdminAllReservations)
+	r.Get("/admin/reservations-calendar", Repo.AdminReservationsCalendar)
+	r.Get("/admin/process-reservation/{src}/{id}/do", Repo.AdminProcessReservation)
+	r.Get("/admin/delete-reservation/{src}/{id}/do", Repo.AdminDeleteReservation)
+	r.Get("/admin/reservations/{src}/{id}/show", Repo.AdminShowReservation)
+	r.Post("/admin/reservations/{src}/{id}", Repo.AdminPostShowReservation)
+	r.Post("/admin/reservations-calendar", Repo.AdminPostReservationsCalendar)
 
 	fileServer := http.FileServer(http.Dir("./static/"))
 	r.Handle("/static/*", http.StripPrefix("/static", fileServer))

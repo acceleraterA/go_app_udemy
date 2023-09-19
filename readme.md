@@ -8,3 +8,6 @@ To run the app, at root directory run the command
 
 To run the test, at root directory run command
 ```go test -v ./...```
+
+To check the coverage, run:
+```go test -coverprofile=coverage.out && go tool cover -html=coverage.out```

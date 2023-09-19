@@ -15,6 +15,8 @@ Show Reservation
 
         <form method="post" action="/admin/reservations/{{$src}}/{{$res.ID}}" class="" novalidate>
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="year" value="{{index .StringMap "year"}}">
+            <input type="hidden" name="month" value="{{index .StringMap "month"}}">
 
             <div class="form-group mt-3">
                 <label for="first_name">First Name:</label>
@@ -80,7 +82,9 @@ Show Reservation
             callback: function(result){
                 if (result!==false){
                     //take to another url
-                    window.location.href = "/admin/process-reservation/{{$src}}/"+id;
+                    window.location.href = "/admin/process-reservation/{{$src}}/"
+                    +id+
+                    "/do?y={{index .StringMap "year"}}&m={{index .StringMap "month"}}";
                 }
             }
 
@@ -95,7 +99,9 @@ Show Reservation
             callback: function(result){
                 if (result!==false){
                     //take to another url
-                    window.location.href = "/admin/delete-reservation/{{$src}}/"+id;
+                    window.location.href = "/admin/delete-reservation/{{$src}}/"
+                    +id
+                    +"/do?y={{index .StringMap "year"}}&m={{index .StringMap "month"}}";
                 }
             }
 
