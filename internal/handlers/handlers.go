@@ -144,6 +144,12 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
+	room, err := m.DB.GetRoomByID(roomID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "invalid data!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
 	// 2020-01-01 -- 01/02 03:04:05PM '06 -0700
 	reservation := models.Reservation{
 		FirstName: r.Form.Get("first_name"),
@@ -153,6 +159,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		StartDate: startDate,
 		EndDate:   endDate,
 		RoomID:    roomID,
+		Room:      room,
 	}
 	//form validation
 	form := forms.New(r.PostForm)
